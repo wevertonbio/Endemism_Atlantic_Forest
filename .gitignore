@@ -48,4 +48,6 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
+# Data
 /Data/Null_dispersion_fields/
+/Data/Priorization\Priority_areas
