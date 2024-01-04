@@ -20,14 +20,27 @@ library(tidyterra)
 lf <- list.files("Data/Dispersion_sign/", full.names = T)
 lf <- lf[!grepl("Other", lf)] %>% as.character()
 #Reorder lifeform
+lf
 lf <- lf[c(1,6,3:5,2)]
-
+lf
 #Get br map
 br <- read_state()
-bb_af <- c(57.89255434, -34.82285576, -33.75435434, -2.80832455)
+bb_af <- c(-57.89255434, -34.82285576, -33.75435434, -2.80832455)
+
+custom_pal <- c(
+  "1-1" = "#E69F00", 
+  "2-1" = "#D55E00", 
+  "3-1" = "#cd2626", 
+  "1-2" = "#D5D5D5", 
+  "2-2" = "#858F94", 
+  "3-2" = "#4D5662", 
+  "1-3" = "#DBE8B4", 
+  "2-3"= "#8DC967", 
+  "3-3" = "#228B22")
+
 #Initiate looping
   #Test looping
-i <- 1
+# i <- 2
 
 maps <- pblapply(seq_along(lf), function(i){
   lf_i <- lf[i]
@@ -42,16 +55,18 @@ maps <- pblapply(seq_along(lf), function(i){
   disp_sign$DispersionSign <- as.factor(disp_sign$DispersionSign)
   
   #Create breaks manually
-  break_vals <- list(bi_x = c(0, 0.10, 0.33, 1),
+  break_vals <- list(bi_x = quantile(disp_sign$Richness,
+                                      probs = c(0, 0.25, 0.5, 0.75, 1))[c(2,4)] %>% 
+                       as.numeric(),
                      bi_y = c(1, 0, -1))
   
   
   #Create breaks dataframe Manually
   df.bi <- disp_sign %>%
-    #Create class of Normalized richness
-    mutate(by_x = ifelse(NormalizedRichness <= 0.20, 1, ifelse(
-      NormalizedRichness > 0.20 & NormalizedRichness <= 0.33, 2, ifelse(
-        NormalizedRichness > 0.33, 3, NA)))) %>% 
+    #Create class of Richness
+    mutate(by_x = ifelse(Richness <= break_vals$bi_x[1], 1, ifelse(
+      Richness > break_vals$bi_x[1] & Richness <= break_vals$bi_x[2], 2, ifelse(
+        Richness > break_vals$bi_x[2], 3, NA)))) %>% 
     #Create class of dispersion sign (Endemism: - 1 is higher endemism, 1 is lower endemism)
     mutate(by_y = ifelse(DispersionSign == -1, 3, ifelse( #High endemism
       DispersionSign == 0, 2, ifelse( #Random
@@ -60,19 +75,6 @@ maps <- pblapply(seq_along(lf), function(i){
     ))) %>% 
     #Create columns with class
     mutate(bi_class = paste0(by_x, "-", by_y))
-  
-  
-  #Set colors
-  custom_pal <- c(
-    "1-1" = "#E69F00", 
-    "2-1" = "#D55E00", 
-    "3-1" = "#cd2626", 
-    "1-2" = "#D5D5D5", 
-    "2-2" = "#858F94", 
-    "3-2" = "#4D5662", 
-    "1-3" = "#DBE8B4", 
-    "2-3"= "#8DC967", 
-    "3-3" = "#228B22") 
   
   #Get beta-diversity
   ind_i <- readRDS(paste0("Data/PAM_indices/Indices_", lf_name, ".rds"))
@@ -114,11 +116,12 @@ maps <- pblapply(seq_along(lf), function(i){
 names(maps) <- gsub("Data/Dispersion_sign/|\\.RDS", "", lf)
 
 #Get legend
+break_vals2 <- list()
 break_vals2$bi_y <- c("Low", "Random\n(Non-significant)", "High")
-break_vals2$bi_x <- c("Low\n(<20%)", "Medium\n(20%-33%)", "High\n(>33%)")
+break_vals2$bi_x <- c("Low\n(Q1)", "Medium\n(Q2-Q3)", "High\n(Q4)")
 legend <- bi_legend(pal = custom_pal,
-                      xlab = "Normalized Richness",
-                      ylab = "Endemism",
+                      xlab = "Richness",
+                      ylab = "Rarity",
                       size = 12,
                       dim = 3,
                       breaks = break_vals2) +
@@ -134,7 +137,7 @@ p <- (maps$All + maps$Tree + maps$Liana) / (maps$Shrub + maps$Subshrub + maps$He
   plot_layout(widths = c(2, 2, 1.4), heights = c(2, 2, 1.4))
 p
 #Save
-ggsave("Data/Figures/Dispersion_maps.png",
+ggsave("Data/Figures/Dispersion_maps3.png",
        p, dpi = 600, units = "px", width = 2500,
        height = 1700, scale = 4.5)
 

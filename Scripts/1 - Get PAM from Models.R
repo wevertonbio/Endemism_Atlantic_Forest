@@ -21,22 +21,23 @@ values(afr) <- 0
 afr <- crop(afr, af, mask = T)
 plot(afr)
 #Rasterize and aggregate afr
-f <- 0.08333333/res(afr)[1]
-afr2 <- aggregate(afr, factor = f, fun = "min")
+f <- 0.25/res(afr)[1]
+afr2 <- terra::aggregate(afr, fact = f, fun = "min")
 res(afr2)
-writeRaster(afr2, "Vetores/AF_raster.tiff", overwrite = TRUE)
+plot(afr2)
+writeRaster(afr2, "Vetores/AF_raster0.25.tiff", overwrite = TRUE)
 
 #Pack spatial objects
 pack_afr <- terra::wrap(afr2)
 pack_af <- terra::wrap(af)
 
 #Get species
-spp <- list.dirs("Models", full.names = F, recursive = F)
+spp <- list.dirs("C:/Users/wever/Desktop/KU_Models/Models", full.names = F, recursive = F)
 #spp <- spp[1:500]
 
 #Make cluster?
 library(parallel)
-cl <- makeCluster(45)
+cl <- makeCluster(8)
 clusterExport(cl, varlist= c("spp", "pack_afr", "pack_af"), #Get all objects created untill now
               envir=environment())
 clusterEvalQ(cl, {
@@ -50,7 +51,7 @@ sp_l <- pblapply(seq_along(spp), function(i){
   tryCatch(
     {#Get specie
   sp <- spp[i]
-  sp_dir <- file.path("Models", sp)
+  sp_dir <- file.path("C:/Users/wever/Desktop/KU_Models/Models", sp)
   #Unpack spatial objects
   af <- unwrap(pack_af)
   afr <- unwrap(pack_afr)
@@ -83,7 +84,7 @@ d <- terra::as.data.frame(rast_all, xy = TRUE)
 
 #Save pam
 library(data.table)
-saveRDS(d, "PAM_5x5km.RDS")
+# saveRDS(d, "Data/PAM_0.5.RDS")
 
 
 #Subset PAM with species
@@ -106,7 +107,7 @@ pam_final2 <- pam_final[row0, ]
 colSums(pam_final2[,-c(1:2)]) %>% min()
 rowSums(pam_final2[,-c(1:2)]) %>% min()
 
-saveRDS(pam_final2, "Data/PAM.RDS")
+saveRDS(pam_final2, "Data/PAM_0.5.RDS")
 
 ####Rasterize some specie just to check####
 p <- readRDS("Data/PAM.RDS")

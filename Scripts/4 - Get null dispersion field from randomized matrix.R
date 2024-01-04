@@ -1,6 +1,8 @@
 #### Get indices from randomized matrix ####
+library(pbapply)
 library(dplyr)
 library(GPUmatrix) #To run analysis in GPU
+library(terra)
 
 #pam_indices_gpu modified from biosurvey R package to run in GPU (faster!)
 source("Scripts/Functions/PAM_indices_gpu.R")
@@ -17,10 +19,13 @@ lapply(seq_along(lf), function(x){
   lf_dir <- file.path("Data/Null_Matrix", lf_i)
   #Get random matrix
   random_l <- list.files(lf_dir, pattern = "m", full.names = T)
-  ds_null <- pblapply(seq_along(random_l), function(i){
-    random_m <- readRDS(paste0(lf_dir, "/m", i, ".rds"))
+  ds_null <- pblapply(1:length(random_l), function(i){
+    random_m <- readRDS(random_l[i])
     #Calculate indices
     ind_i <- PAM_indices_gpu(PAM = random_m, indices = "DF")
+    #Save
+    saveRDS(ind_i,
+            paste0("Data/Null_Matrix/", lf_i, "/r_ind", i, ".rds"))
     #Get dispersion field normalized by site and richness
     n_sites <- ind_i$One_value_indices["Sites_Cells",]
     S <- ind_i$One_value_indices["Species",]
@@ -39,7 +44,7 @@ lapply(seq_along(lf), function(x){
 #Create directory to save results
 dir.create("Data/Dispersion_sign")
 #Get coordinates from PAM
-PAM <- readRDS("Data/PAM.RDS")
+PAM <- readRDS("Data/PAM_0.5.RDS")
 xy <- PAM[, c("x", "y")]
 
 #Get list of pam indices
@@ -66,8 +71,8 @@ pblapply(seq_along(pam_ind), function(i){
   ind_pos <- sapply(1:nrow(ds_null), function(i){
     ds_i <- ds[i]
     ds_null_i <- ds_null[i,]
-    pos5 <- quantile(ds_null_i, 0.05)
-    pos95 <- quantile(ds_null_i, 0.95)
+    pos5 <- quantile(ds_null_i, 0.025) # Low 2.5% CI
+    pos95 <- quantile(ds_null_i, 0.975) # High 2.5% CI
     pos_i <- ifelse(ds_i < pos5, -1,
                     ifelse(ds_i > pos95, 1, 0))
     return(pos_i)
@@ -82,7 +87,7 @@ pblapply(seq_along(pam_ind), function(i){
                      NormalizedRichness = ind_i$Richness_normalized)
                      
   # #Rasterize to see
-  afr <- rast("../Richness_patterns/Data/Variables/Explanatory_Variables.tiff")
+  afr <- rast("Data/Vectors/AF_raster0.25.tiff")
   disp_sign_r <- rasterize(x = disp_sign %>% dplyr::select(x, y) %>% as.matrix(),
                            y = afr,
                            values = disp_sign$DispersionSign)

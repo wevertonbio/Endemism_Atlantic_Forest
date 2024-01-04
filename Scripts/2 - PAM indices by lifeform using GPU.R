@@ -10,7 +10,7 @@ spinfo <- read.csv("Data/SpeciesData.csv")
 spinfo$species <- gsub(" ", "_", spinfo$species)
 
 #Import PAM
-PAM <- readRDS("Data/PAM.RDS")
+PAM <- readRDS("Data/PAM_0.5.RDS")
 
 ####Get PAM of all species####
 pam_all <- PAM %>% dplyr::select(-x, -y) %>% as.matrix()
@@ -31,6 +31,7 @@ ind_all$lifeform <- "All"
 #Empty cuda cache
 torch::cuda_empty_cache()
 #Save
+dir.create("Data/PAM_indices/")
 saveRDS(ind_all, "Data/PAM_indices/Indices_All.rds")
 rm(ind_all)
 
@@ -38,6 +39,8 @@ rm(ind_all)
 #Get lifeforms
 lf <- unique(spinfo$lifeForm)
 lf
+#Remove other
+lf <- lf[-6]
 
 pblapply(seq_along(lf), function(i){
   #Get species in lifeform i
