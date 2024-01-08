@@ -1,10 +1,12 @@
 #### Plot and describe results ####
 
+#Load packages
 library(dplyr)
 library(ggplot2)
 library(pbapply)
 library(tidyr)
 library(scales)
+library(terra)
 
 ####PROTECTED AREAS####
 
@@ -182,3 +184,322 @@ ggsave("Data/Figures/Fragment.png", g_f,
        units = "px",
        dpi = 600, width = 2500,
        height = 1000, scale = 3)
+
+####RANGE-DIVERSITY PLOTS####
+#Import data to plot#
+lf <- list.files("Data/Dispersion_sign/", full.names = T)
+lf <- lf[!grepl("Other", lf)] %>% as.character()
+#Reorder lifeform
+lf
+lf <- lf[c(1,6,3:5,2)]
+lf
+
+data <- pblapply(seq_along(lf), function(i){
+  lf_i <- lf[i]
+  #Get lifeform name
+  lf_name <- gsub("Data/Dispersion_sign/|\\.RDS", "", lf_i)
+  print(lf_name)
+  #Get label to plot
+  my_label <- paste0("(", letters[i], ") ", lf_name)
+  
+  #Read data with dispersion sign and richness
+  disp_sign <- readRDS(lf_i)
+  disp_sign$DispersionSign <- as.factor(disp_sign$DispersionSign)
+  
+  #Create breaks manually
+  break_vals <- list(bi_x = quantile(disp_sign$Richness,
+                                     probs = c(0, 0.25, 0.5, 0.75, 1))[c(2,4)] %>% 
+                       as.numeric(),
+                     bi_y = c(1, 0, -1))
+  
+  
+  #Create breaks dataframe Manually
+  df.bi <- disp_sign %>%
+    #Create class of Richness
+    mutate(by_x = ifelse(Richness <= break_vals$bi_x[1], 1, ifelse(
+      Richness > break_vals$bi_x[1] & Richness <= break_vals$bi_x[2], 2, ifelse(
+        Richness > break_vals$bi_x[2], 3, NA)))) %>% 
+    #Create class of dispersion sign (Endemism: - 1 is higher endemism, 1 is lower endemism)
+    mutate(by_y = ifelse(DispersionSign == -1, 3, ifelse( #High endemism
+      DispersionSign == 0, 2, ifelse( #Random
+        DispersionSign == 1, 1, NA #Low endemism
+      )
+    ))) %>% 
+    #Create columns with class
+    mutate(bi_class = paste0(by_x, "-", by_y)) %>% 
+    mutate(lifeform = lf_name)
+  return(df.bi)
+}) %>% bind_rows()
+
+#RDP Plot
+#Colors
+custom_pal <- c(
+  "1-1" = "#E69F00", 
+  "2-1" = "#D55E00", 
+  "3-1" = "#cd2626", 
+  "1-2" = "#D5D5D5", 
+  "2-2" = "#858F94", 
+  "3-2" = "#4D5662", 
+  "1-3" = "#DBE8B4", 
+  "2-3"= "#8DC967", 
+  "3-3" = "#228B22")
+#Define factors
+data$lifeform <- factor(data$lifeform, levels = c("All", "Tree", "Liana", "Shrub",
+                                                  "Subshrub", "Herb"))
+#Get plots
+rdp <- ggplot(data, aes(x = NormalizedRichness,
+                        y = DispersedFieldNormalized,
+                        colour = bi_class)) +
+  geom_point() +
+  scale_colour_manual(name = "Significance",
+                      values = custom_pal) +
+  theme_bw() +
+  xlab("Richness (Normalized)") + ylab("Dispersion Field (Normalized)") +
+  facet_wrap(.~ lifeform, scales = "free_x") +
+  ggpubr::theme_pubclean() +
+  theme(legend.position = "none")
+rdp
+#Get biplot legend
+#Get legend
+break_vals2 <- list()
+break_vals2$bi_y <- c("Low", "Random\n(Non-significant)", "High")
+break_vals2$bi_x <- c("Low\n(Q1)", "Medium\n(Q2-Q3)", "High\n(Q4)")
+legend <- bi_legend(pal = custom_pal,
+                    xlab = "Richness",
+                    ylab = "Rarity",
+                    size = 12,
+                    dim = 3,
+                    breaks = break_vals2) +
+  #Deixar background transparente
+  theme(panel.background = element_rect(fill = "transparent",
+                                        colour = NA),
+        plot.background = element_rect(fill = "transparent",
+                                       colour = NA))
+legend
+#Save legend
+ggsave("Data/Figures/LegendRDP.png", legend,
+       units = "px",
+       dpi = 600, width = 1500,
+       height = 1500, scale = 1.75)
+#Join data
+p <- rdp + legend + plot_layout(widths = c(2, 0.5))
+p
+ggsave("Data/Figures/RangeDiversityPlots.png", p,
+       units = "px",
+       dpi = 600, width = 2500,
+       height = 1500, scale = 3)
+
+#Single plot
+data_single <- data %>% filter(lifeform == "Tree")
+srdp <- ggplot(data, aes(x = NormalizedRichness,
+                          y = DispersedFieldNormalized,
+                          colour = bi_class)) +
+  geom_point() +
+  scale_colour_manual(name = "Significance",
+                      values = custom_pal) +
+  theme_bw() +
+  xlab("Richness (Normalized)") + ylab("Dispersion Field (Normalized)") +
+  ggpubr::theme_pubclean() +
+  theme(legend.position = "none")
+srdp
+ggsave("Data/Figures/Single_RangeDiversityPlot.png", srdp,
+       units = "px",
+       dpi = 600, width = 2000,
+       height = 1500, scale = 1.75)
+
+
+####DESCRIBING RESULTS####
+
+####Hotospots in ecoregions####
+#Import ecoregions in AF
+af_eco <- vect("../spatial_files/Data/Ecoregions_Atlantic_Forest_simplified.gpkg")
+plot(af_eco, col = pals::alphabet2(13))
+
+#Import data 
+#Import data to plot#
+lf <- list.files("Data/Dispersion_sign/", full.names = T)
+lf <- lf[!grepl("Other", lf)] %>% as.character()
+#Reorder lifeform
+lf
+lf <- lf[c(1,6,3:5,2)]
+lf
+
+data <- pblapply(seq_along(lf), function(i){
+  lf_i <- lf[i]
+  #Get lifeform name
+  lf_name <- gsub("Data/Dispersion_sign/|\\.RDS", "", lf_i)
+  print(lf_name)
+  #Get label to plot
+  my_label <- paste0("(", letters[i], ") ", lf_name)
+  
+  #Read data with dispersion sign and richness
+  disp_sign <- readRDS(lf_i)
+  disp_sign$DispersionSign <- as.factor(disp_sign$DispersionSign)
+  
+  #Create breaks manually
+  break_vals <- list(bi_x = quantile(disp_sign$Richness,
+                                     probs = c(0, 0.25, 0.5, 0.75, 1))[c(2,4)] %>% 
+                       as.numeric(),
+                     bi_y = c(1, 0, -1))
+  
+  
+  #Create breaks dataframe Manually
+  df.bi <- disp_sign %>%
+    #Create class of Richness
+    mutate(by_x = ifelse(Richness <= break_vals$bi_x[1], 1, ifelse(
+      Richness > break_vals$bi_x[1] & Richness <= break_vals$bi_x[2], 2, ifelse(
+        Richness > break_vals$bi_x[2], 3, NA)))) %>% 
+    #Create class of dispersion sign (Endemism: - 1 is higher endemism, 1 is lower endemism)
+    mutate(by_y = ifelse(DispersionSign == -1, 3, ifelse( #High endemism
+      DispersionSign == 0, 2, ifelse( #Random
+        DispersionSign == 1, 1, NA #Low endemism
+      )
+    ))) %>% 
+    #Create columns with class
+    mutate(bi_class = paste0(by_x, "-", by_y)) %>% 
+    mutate(lifeform = lf_name) %>% 
+    mutate(Hotspot = 
+                              #Rich-rarity: 3-3
+                              ifelse(bi_class == "3-3", "Rich_rare", 
+                                     #Poor-rarity: 3-3
+                                     ifelse(bi_class %in% c("1-3", "2-3"),
+                                            "Poor_rare", NA)))
+  return(df.bi)
+}) %>% bind_rows()
+#Convert dataframe to spatvector
+pts <- vect(data, geom = c(x = "x", y = "y"), crs = crs(af_eco))
+#Create column with 1 to sum
+pts$value <- 1
+
+#Extract number of points of each hostpot within each ecoregion
+  #Get hotspots and lifeforms
+hotspots <- unique(pts$Hotspot) %>% na.omit()
+lfs <- unique(pts$lifeform)
+
+eco_hot <- pblapply(seq_along(lfs), function(i){
+  lf_i <- lfs[i]
+  pts_i <- subset(pts, pts$lifeform == lf_i)
+  eco_i <- lapply(hotspots, function(x){
+    pts_x <- subset(pts_i, pts_i$Hotspot == x)
+    z_i <- terra::zonal(pts_x, af_eco, fun = "sum", na.rm = TRUE, exact = TRUE) %>% 
+      mutate(lifeform = lf_i,
+             Hotspot = x,
+             .before = 1) %>% 
+      mutate(portion = round((value/sum(value))*100,1))
+  }) %>% bind_rows() %>% dplyr::select(lifeform, Hotspot, zone, value, portion)
+  }) %>% bind_rows()
+#Append ecoregion names
+eco_id <- data.frame(zone = 1:13, ecoregion = af_eco$ECO_NAME)
+eco_data <- left_join(eco_hot, eco_id, by = "zone") %>% 
+  dplyr::select(lifeform, Hotspot, ecoregion, value, portion)
+
+#Extract top3 ecoregions for each lifeform and hotspot
+top5 <- pblapply(lfs, function(i){
+  data_i <- eco_data %>% filter(lifeform == i)
+  h_i <- lapply(hotspots, function(x){
+    data_x <- data_i %>% filter(Hotspot == x) %>% 
+      top_n(portion, n = 5) %>% dplyr::arrange(desc(portion))
+  eco_portion <- data.frame(Top_Ecoregions = paste0(data_x$ecoregion, " (", data_x$portion, "%)",
+                        collapse = ", ")) %>% 
+    mutate(lifeform = i, Hotspot = x, .before = 1)
+    }) %>% bind_rows() 
+}) %>% bind_rows()
+
+#Get map base of sum of hotspots
+b <- rast("Data/Vectors/AF_raster0.25.tiff")
+  #Get rasters
+#Richness-hotspots
+rr_rasters <- pblapply(lfs, function(i){
+  data_rr <- data %>% filter(Hotspot == "Rich_rare", lifeform == i)
+  rr <- rasterize(data_rr[,c("x", "y")] %>% as.matrix(),
+                  b)
+  return(rr)
+}) %>% rast()
+names(rr_rasters) <- lfs
+plot(rr_rasters)
+#Poor-hotspot
+pr_rasters <- pblapply(lfs, function(i){
+  data_pr <- data %>% filter(Hotspot == "Poor_rare", lifeform == i)
+  pr <- rasterize(data_pr[,c("x", "y")] %>% as.matrix(),
+                  b)
+  return(pr)
+}) %>% rast()
+names(pr_rasters) <- lfs
+plot(pr_rasters)
+
+#Sum rich-hotspot
+sum_rr <- app(rr_rasters[[-1]], sum, na.rm = TRUE)
+plot(sum_rr)
+library(mapview)
+mapview(af_eco) + mapview(sum_rr)
+
+#Sum poor-hotspot
+sum_pr <- app(pr_rasters[[-1]], sum, na.rm = TRUE)
+plot(sum_pr)
+library(mapview)
+mapview(af_eco) + mapview(sum_pr)
+
+#Save rasters
+  #Rich_rare
+writeRaster(rr_rasters, "Data/Rich_rare_hotspots.tiff")
+  #Poor_rare
+writeRaster(pr_rasters, "Data/Poor_rare_hotspots.tiff")
+
+#Start to describe results
+#How many cells in AF?
+b %>% as.data.frame(na.rm = TRUE) %>% nrow()
+#How many species considering all life forms?
+data %>% filter(lifeform == "All") %>% pull(Richness) %>% min()
+data %>% filter(lifeform == "All") %>% pull(Richness) %>% max()
+#Mean species
+pblapply(lfs, function(i){
+  paste(i, data %>% filter(lifeform == i) %>% pull(Richness) %>% mean())
+  })
+#Sd species
+pblapply(lfs, function(i){
+  paste(i, data %>% filter(lifeform == i) %>% pull(Richness) %>% sd())
+})
+
+#How many cells in each hotspots
+data %>% filter(!is.na(Hotspot)) %>% group_by(lifeform, Hotspot) %>%
+                  summarise(n = n()) %>% View()
+
+#Get main threats by hotspots and lifeform
+top5_threats <- pblapply(lfs, function(i){
+  data_i <- data_luc %>% filter(lifeform == i)
+  h_i <- lapply(unique(data_i$layer), function(x){
+    data_x <- data_i %>% filter(layer == x) %>% 
+      top_n(portion, n = 5) %>% dplyr::arrange(desc(portion))
+  luc_portion <- data.frame(Top_LUC = paste0(data_x$LUC, " (", 
+                                               round(data_x$portion, 2), "%)",
+                                                      collapse = ", ")) %>% 
+      mutate(lifeform = i, Hotspot = x, .before = 1)
+  }) %>% bind_rows() 
+}) %>% bind_rows()
+
+#How much of the hotspots are covered by natural vegetation
+pblapply(lfs, function(i) {
+  v <- data_luc %>% filter(lifeform == i,
+                    layer == "Richness-rarity hotspot",
+                    LUC %in% c("Natural\nforest", " Other natural\nvegetation")
+                    ) %>% pull(portion) %>% sum() %>% round(2)
+  paste(i, v, collapse = ":")
+})
+pblapply(lfs, function(i) {
+  v <- data_luc %>% filter(lifeform == i,
+                           layer == "Poorness-rarity hotspot",
+                           LUC %in% c("Natural\nforest", " Other natural\nvegetation")
+  ) %>% pull(portion) %>% sum() %>% round(2)
+  paste(i, v, collapse = ":")
+})
+
+#Size of hotspots#
+df_percentage <- df_f %>%
+  group_by(lifeform, layer, Size) %>%
+  summarize(Percentage = sum(count) / sum(df_f$count) * 100) %>%
+  group_by(lifeform, layer) %>%
+  mutate(Percentage = Percentage / sum(Percentage) * 100)
+#Averages of sizes
+df_percentage %>% filter(Size == "Large (>10ha)") %>% pull(Percentage) %>% mean()
+df_percentage %>% filter(Size == "Small (<1ha)") %>% pull(Percentage) %>% mean()
+df_percentage %>% filter(Size == "Medium (1-10ha)") %>% pull(Percentage) %>% mean()
