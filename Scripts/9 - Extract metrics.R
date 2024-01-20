@@ -154,9 +154,12 @@ res(b1)*111
 #AF limits
 af <- vect("../spatial_files/Data/AF_dissolved.gpkg")
 #Protected areas
-pa <- vect("../spatial_files/Data/AF Protected Areas WDPA.gpkg")
+pa <- vect("../spatial_files/Data/AF Protected Areas WDPA_v2.gpkg")
+#Dissolve polygons
+pa_dissolved <- aggregate(pa)
+plot(pa_dissolved)
 #Get extent of PAs
-pa_area <- expanse(pa, "km")
+pa_area <- expanse(pa_dissolved, "km")
 #% of AF covered by pas
 af_pa_km <- pa_area/expanse(af, "km") #~10%
 #Now, create random PAs covering ~10% of AF
@@ -253,6 +256,8 @@ random_protection <- pblapply(seq_along(htp), function(i){
   
 })
 names(random_protection) <- gsub("Data/Dispersion_sign/|\\.RDS", "", lf)
+#Save random data to plot
+saveRDS(random_protection, "Data/Metrics/Random_protection.RDS")
 
 #Estimated if real protection is better, worse or equal random PAs
 #Import metrics again
@@ -277,9 +282,9 @@ protection_significance <- pblapply(names(m), function(i){
   worse_random_pr <- quantile(random_i$PR_random, 0.025)[[1]]
   #Identify if protection is better or worse
   random_rr <- ifelse(rr_real/100 < worse_random_rr, "Worse",
-                      ifelse(rr_real > better_random_rr, "Better", "Random"))
+                      ifelse(rr_real/100 > better_random_rr, "Better", "Random"))
   random_pr <- ifelse(pr_real/100 < worse_random_pr, "Worse",
-                      ifelse(pr_real > better_random_pr, "Better", "Random"))
+                      ifelse(pr_real/100 > better_random_pr, "Better", "Random"))
   
   #Create dataframe indicating significance
   df_sig <- m_i$PA_data %>%

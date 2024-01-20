@@ -28,15 +28,15 @@ br <- read_state()
 bb_af <- c(-57.89255434, -34.82285576, -33.75435434, -2.80832455)
 
 custom_pal <- c(
-  "1-1" = "#E69F00", 
-  "2-1" = "#D55E00", 
-  "3-1" = "#cd2626", 
+  "1-1" = "#DBE8B4", 
+  "2-1" = "#8DC967", 
+  "3-1" = "#228B22",
   "1-2" = "#D5D5D5", 
   "2-2" = "#858F94", 
   "3-2" = "#4D5662", 
-  "1-3" = "#DBE8B4", 
-  "2-3"= "#8DC967", 
-  "3-3" = "#228B22")
+  "1-3" = "#56B4E9",
+  "2-3"= "#0072B2", 
+  "3-3" = "#cd2626")
 
 #Initiate looping
   #Test looping
@@ -94,7 +94,7 @@ maps <- pblapply(seq_along(lf), function(i){
              ylim = c(bb_af[2] - 0.5, ymax=bb_af[4] + 0.5),
              expand = T) +
     annotate("text", x = -48, y = -30,
-             label = paste("??-diversity =",betadiv), hjust = 0) +
+             label = paste("β-diversity =",betadiv), hjust = 0) +
     annotate("text", x = -48, y = -27,
              label = paste("Species total =",S_tot), hjust = 0) +
     theme(legend.position = "none",
@@ -137,7 +137,7 @@ p <- (maps$All + maps$Tree + maps$Liana) / (maps$Shrub + maps$Subshrub + maps$He
   plot_layout(widths = c(2, 2, 1.4), heights = c(2, 2, 1.4))
 p
 #Save
-ggsave("Data/Figures/Dispersion_maps3.png",
+ggsave("Data/Figures/Dispersion_maps.png",
        p, dpi = 600, units = "px", width = 2500,
        height = 1700, scale = 4.5)
 
