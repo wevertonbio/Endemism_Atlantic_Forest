@@ -55,3 +55,5 @@ rsconnect/
 /Data/Old
 /Data/Vectors
 /Data/Figures
+/Data/Metrics/*.docx
+/Data/Metrics/*.rtf
