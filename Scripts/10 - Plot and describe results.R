@@ -351,14 +351,15 @@ break_vals2$bi_x <- c("Low\n(Q1)", "Medium\n(Q2-Q3)", "High\n(Q4)")
 legend <- bi_legend(pal = custom_pal,
                     xlab = "Richness",
                     ylab = "Rarity",
-                    size = 12,
+                    size = 17,
                     dim = 3,
                     breaks = break_vals2) +
   #Deixar background transparente
   theme(panel.background = element_rect(fill = "transparent",
                                         colour = NA),
         plot.background = element_rect(fill = "transparent",
-                                       colour = NA))
+                                       colour = NA),
+        legend.title = element_text(size=8))
 legend
 #Save legend
 ggsave("Data/Figures/LegendRDP.png", legend,
@@ -384,11 +385,13 @@ srdp <- ggplot(data, aes(x = NormalizedRichness,
   theme_bw() +
   xlab("Richness (Normalized)") + ylab("Dispersion Field (Normalized)") +
   ggpubr::theme_pubclean() +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        axis.title=element_text(size=18),
+        axis.text = element_text(size = 14))
 srdp
 ggsave("Data/Figures/Single_RangeDiversityPlot.png", srdp,
        units = "px",
-       dpi = 600, width = 2000,
+       dpi = 600, width = 2200,
        height = 1500, scale = 1.75)
 
 #Single plot of range diversity in map
@@ -411,7 +414,7 @@ map <- ggplot() +
         strip.text = element_text(size = 12, colour = "black"),
         axis.text.y = element_text(angle = 90, hjust = 0.5),
         axis.text = element_text(size = 9.5, colour = "black"),
-        axis.title = element_text(size = 9.5, colour = "black"),
+        axis.title = element_text(size = 17, colour = "black"),
         plot.title = element_text(hjust = 0.5, face = "bold")) +
   labs(x = "Longitude",
        y = "Latitude") +

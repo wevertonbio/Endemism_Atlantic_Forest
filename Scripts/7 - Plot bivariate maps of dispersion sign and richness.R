@@ -142,16 +142,16 @@ ggsave("Data/Figures/Dispersion_maps.png",
        height = 1700, scale = 4.5)
 
 
-# ####Representations of diversity and dispersion indices####
-# ####Plot richness vs dispersion field####
-# # ds_legeng <- factor(df.bi$DispersionSign,
-# #                     levels = c(-1, 0, 1),
-# #                     labels = c("Below 5%", "Non-significant", "Above 95%"))
+####Representations of diversity and dispersion indices####
+####Plot richness vs dispersion field####
+# ds_legeng <- factor(df.bi$DispersionSign,
+#                     levels = c(-1, 0, 1),
+#                     labels = c("Below 5%", "Non-significant", "Above 95%"))
 # 
 # g1 <- ggplot(df.bi, aes(x = NormalizedRichness,
 #                         y = DispersedFieldNormalized,
 #                         colour = bi_class)) +
-#   geom_point() + 
+#   geom_point() +
 #   scale_colour_manual(name = "Significance",
 #                       values = custom_pal) +
 #   theme_bw() +
@@ -159,9 +159,9 @@ ggsave("Data/Figures/Dispersion_maps.png",
 #   theme(legend.position = "none")
 # 
 # # g1
-# g2 <- map + g1/legend + plot_layout(widths = c(4, 3, 1)) +
-#   plot_annotation(title = lf_i) & 
+# g2 <- map + g1 / legend + plot_layout(widths = c(4, 3, 1)) +
+#   plot_annotation(title = lf_i) &
 #   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 # # g2
 # ggsave(paste0("PAM_indices/Dispersion_maps/", lf_i, ".png"), g2, width = 14, height = 8, dpi = 300)
-# })
+# # })
